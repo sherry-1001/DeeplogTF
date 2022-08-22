@@ -64,7 +64,6 @@ class DeepLog(keras.Model):
         # One hot encode X
         x = tf.one_hot(x, self.input_size, dtype=tf.float32)
 
-        print(tf.shape(x))
         # Set initial hidden states
         hidden = self._get_initial_state(x)
         state = self._get_initial_state(x)
@@ -113,9 +112,11 @@ class DeepLog(keras.Model):
         # Get the predictions
         result = super().predict(X, batch_size, verbose=verbose)
         # Get the probabilities from the log probabilities
-        result = tf.constant(np.exp(result))
+        # result = tf.constant(np.exp(result))
+        result = np.exp(result)
         # Compute k most likely outputs
-        confidence, result = tf.raw_ops.TopKV2(input = result, k = k, name = "Topk")
+        confidence, result = self.find_topk(result, k)
+        # confidence, result = tf.raw_ops.TopKV2(input=result, k=k, name="Topk")
         # Return result
         return result, confidence
 
@@ -152,3 +153,30 @@ class DeepLog(keras.Model):
         # Return tensor of correct shape as device
         return [tf.zeros([tf.shape(X)[0], self.hidden_size]),
                 tf.zeros([tf.shape(X)[0], self.hidden_size])]
+
+    def find_topk(self, a, k, axis=-1, largest=True, sorted=True):
+        if axis is None:
+            axis_size = a.size
+        else:
+            axis_size = a.shape[axis]
+        assert 1 <= k <= axis_size
+
+        a = np.asanyarray(a)
+        if largest:
+            index_array = np.argpartition(a, axis_size-k, axis=axis)
+            topk_indices = np.take(index_array, -np.arange(k)-1, axis=axis)
+        else:
+            index_array = np.argpartition(a, k-1, axis=axis)
+            topk_indices = np.take(index_array, np.arange(k), axis=axis)
+        topk_values = np.take_along_axis(a, topk_indices, axis=axis)
+        if sorted:
+            sorted_indices_in_topk = np.argsort(topk_values, axis=axis)
+            if largest:
+                sorted_indices_in_topk = np.flip(
+                    sorted_indices_in_topk, axis=axis)
+            sorted_topk_values = np.take_along_axis(
+                topk_values, sorted_indices_in_topk, axis=axis)
+            sorted_topk_indices = np.take_along_axis(
+                topk_indices, sorted_indices_in_topk, axis=axis)
+            return sorted_topk_values, sorted_topk_indices
+        return topk_values, topk_indices
