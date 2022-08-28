@@ -59,9 +59,9 @@ def example_local():
 
         # Create DeepLog object
         deeplog = DeepLog(
-            input_size=300,  # Number of different events to expect
+            input_size=30,  # Number of different events to expect
             hidden_size=64,  # Hidden dimension, we suggest 64
-            output_size=300,  # Number of different events to expect
+            output_size=30,  # Number of different events to expect
         )
 
         # Train
@@ -73,7 +73,7 @@ def example_local():
 
         optimz = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss, global_step=global_step)
 
-        train_acc = tf.keras.metrics.sparse_categorical_accuracy(out,y)
+        train_acc = tf.keras.metrics.sparse_categorical_accuracy(y, out)
 
         init = tf.global_variables_initializer()
 
@@ -106,11 +106,14 @@ def example_local():
                     itr_time += ts_end - ts_begin
                     itr_num += 1
 
+                    print(time.strftime('%Y-%m-%d %H:%M:%S ',time.localtime(time.time())) + f"Loss: {np.mean(loss_list).astype(np.float).round(3)}, acc: {np.mean(train_acc_list).round(10)}")
             except tf.errors.OutOfRangeError:
                 pass
 
-            print(f"Loss: {np.mean(loss_list).astype(np.float).round(3)}, acc: {np.mean(train_acc_list).round(3)}, "
-                  f"batch time: {round(itr_time / itr_num, 7)} s, batch num: {itr_num}")
+            print(f"epoch num: {i}")
+            print(f"batch time: {round(itr_time / itr_num, 7)} s, batch num: {itr_num}")
+            # print("y:%f", ret_y)
+            # print("out:%f", ret_fwd)
 
 if __name__ == "__main__":
     example_local()
